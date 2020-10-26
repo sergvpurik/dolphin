@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #include "Common/GL/GLInterface/EGLX11.h"
+#include "Common/Logging/Log.h"
+#include <string.h>
 
 GLContextEGLX11::~GLContextEGLX11()
 {
@@ -21,7 +23,40 @@ void GLContextEGLX11::Update()
 
 EGLDisplay GLContextEGLX11::OpenEGLDisplay()
 {
-  return eglGetDisplay(static_cast<Display*>(m_wsi.display_connection));
+#ifdef EGL_EXT_client_extensions
+    const char *ext = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    NOTICE_LOG(VIDEO, "EGL_EXTENSIONS: %s", ext);
+    if (ext)
+    {
+        if(strstr(ext, "EGL_KHR_platform_x11"))
+        {
+            typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETPLATFORMDISPLAYPROC) (EGLenum platform, void *native_display, const EGLAttrib *attrib_list);
+            PFNEGLGETPLATFORMDISPLAYPROC getDisplayProc = nullptr;
+            getDisplayProc = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYPROC>(eglGetProcAddress("eglGetPlatformDisplay"));
+            if (getDisplayProc)
+            {
+                NOTICE_LOG(VIDEO, "use eglGetPlatformDisplay");
+                return getDisplayProc(EGL_PLATFORM_X11_KHR, m_wsi.display_connection, nullptr);
+            }
+        }
+
+#ifdef EGL_EXT_platform_base
+        if(strstr(ext, "EGL_EXT_platform_x11"))
+        {
+            PFNEGLGETPLATFORMDISPLAYEXTPROC getDisplayProc = nullptr;
+            getDisplayProc = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
+            if (getDisplayProc)
+            {
+                NOTICE_LOG(VIDEO, "use eglGetPlatformDisplayEXT");
+                return getDisplayProc(EGL_PLATFORM_X11_EXT, m_wsi.display_connection, nullptr);
+            }
+        }
+#endif
+    }
+    return nullptr;
+#else
+    return eglGetDisplay(static_cast<Display*>(m_wsi.display_connection));
+#endif
 }
 
 EGLNativeWindowType GLContextEGLX11::GetEGLNativeWindow(EGLConfig config)

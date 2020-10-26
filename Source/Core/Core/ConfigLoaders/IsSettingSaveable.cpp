@@ -33,7 +33,7 @@ bool IsSettingSaveable(const Config::Location& config_location)
     }
   }
 
-  static constexpr std::array<const Config::Location*, 16> s_setting_saveable = {
+  static constexpr std::array<const Config::Location*, 17> s_setting_saveable = {
       // Main.Core
 
       &Config::MAIN_DEFAULT_ISO.location,
@@ -61,6 +61,10 @@ bool IsSettingSaveable(const Config::Location& config_location)
       // UI.General
 
       &Config::MAIN_USE_DISCORD_PRESENCE.location,
+
+      // Custom
+
+      &Config::GFX_PREFER_GLES.location,
   };
 
   return std::any_of(s_setting_saveable.cbegin(), s_setting_saveable.cend(),
